@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import './index.css';
 import { Fish, Sparkles, Wrench, Calendar, TrendingUp, MessageSquare, User, Wifi, CheckCircle, Home, LogOut, KeyRound, History, LayoutDashboard, ChevronDown, X, FileSpreadsheet } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";

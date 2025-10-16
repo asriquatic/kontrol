@@ -1,7 +1,9 @@
-// C:\Kontrol\postcss.config.cjs
+// postcss.config.js atau postcss.config.cjs
+// Pastikan ini menggunakan sintaks ES Module atau CommonJS yang benar
 module.exports = {
-  plugins: [
-    require('tailwindcss'),
-    require('autoprefixer'),
-  ]
+  plugins: {
+    // PostCSS modern mencari paket secara otomatis berdasarkan nama key
+    'tailwindcss': {},
+    'autoprefixer': {},
+  }
 };

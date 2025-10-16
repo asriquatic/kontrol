@@ -1,5 +1,5 @@
 {
-  "name": "controling-baru",
+  "name": "controling-baru", 
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -32,5 +32,5 @@
   },
   "engines": {
   "node": ">=20.19.0" 
-},
+ }
 }

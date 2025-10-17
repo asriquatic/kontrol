@@ -21,7 +21,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 setLogLevel('error');
 
-// --- Helper Components ---
+// --- Helper Components & Functions ---
 const Icon = ({ name, size = 20 }) => {
     switch (name) {
         case 'Fish': return <Fish size={size} />;
@@ -31,8 +31,19 @@ const Icon = ({ name, size = 20 }) => {
     }
 };
 
+// FUNGSI BARU: Untuk mendapatkan tanggal hari ini dalam format YYYY-MM-DD
+const getTodayDateString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 // --- Initial Data Structure ---
+// PERBAIKAN: Menambahkan field 'dateSaved'
 const createInitialBlockState = () => ({
+    dateSaved: getTodayDateString(), // <-- Penambahan field tanggal
     reviews: {
         'kondisi-ikan': '', 'kebersihan': '', 'fungsi-alat-bantu': ''
     },
@@ -123,7 +134,7 @@ const HistoryPage = ({ checklistData }) => {
         setIsExporting(true);
         const exportData = aquariumKeys.map(key => {
             const aquariumData = blockData[key];
-            const row = { 'Blok': activeBlock, 'Aquarium': key, };
+            const row = { 'Blok': activeBlock, 'Aquarium': key, 'Tanggal': aquariumData.dateSaved || '' };
             aquariumData.categories.forEach(category => {
                 category.sections.forEach(section => {
                     if (section.type === 'radio') { 
@@ -200,7 +211,10 @@ const HistoryPage = ({ checklistData }) => {
                         return ( 
                             <div key={key} className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300"> 
                                 <button onClick={() => toggleAquarium(key)} className="w-full p-4 text-left flex justify-between items-center hover:bg-gray-50"> 
-                                    <span className="font-bold text-lg text-blue-800">Aquarium #{key}</span> 
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-lg text-blue-800">Aquarium #{key}</span>
+                                        <span className="text-xs text-gray-500">Disimpan: {aquariumData.dateSaved || 'N/A'}</span>
+                                    </div>
                                     <div className="flex items-center gap-4"> 
                                         <span className="text-sm font-semibold text-gray-600 bg-gray-200 px-2 py-1 rounded-full">{completion}% Selesai</span> 
                                         <ChevronDown className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /> 
@@ -297,13 +311,16 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
         }
     };
     
+    // PERBAIKAN: Semua fungsi 'handle' sekarang juga memperbarui 'dateSaved'
     const handleOptionChange = (categoryId, sectionId, value) => {
+        const today = getTodayDateString();
         setChecklistData(prevData => ({
             ...prevData,
             [activeBlock]: {
                 ...prevData[activeBlock],
                 [selectedAquarium]: {
                     ...prevData[activeBlock][selectedAquarium],
+                    dateSaved: today,
                     categories: prevData[activeBlock][selectedAquarium].categories.map(cat => 
                         cat.id === categoryId ? {
                             ...cat,
@@ -318,12 +335,14 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
     };
     
     const handleTriStateChange = (categoryId, sectionId, itemId, newStatus) => {
+        const today = getTodayDateString();
         setChecklistData(prevData => ({
             ...prevData,
             [activeBlock]: {
                 ...prevData[activeBlock],
                 [selectedAquarium]: {
                     ...prevData[activeBlock][selectedAquarium],
+                    dateSaved: today,
                     categories: prevData[activeBlock][selectedAquarium].categories.map(cat => 
                         cat.id === categoryId ? {
                             ...cat,
@@ -344,12 +363,14 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
     
     const handleReviewChange = (categoryId, event) => {
         const { value } = event.target;
+        const today = getTodayDateString();
         setChecklistData(prevData => ({
             ...prevData,
             [activeBlock]: {
                 ...prevData[activeBlock],
                 [selectedAquarium]: {
                     ...prevData[activeBlock][selectedAquarium],
+                    dateSaved: today,
                     reviews: {
                         ...prevData[activeBlock][selectedAquarium].reviews,
                         [categoryId]: value
@@ -471,7 +492,6 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
 
 // --- Komponen Utama Aplikasi (APP) ---
 export default function App() {
-    // PERBAIKAN: Inisialisasi state isLoggedIn dari localStorage
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
         return localStorage.getItem('isLoggedIn') === 'true';
     });
@@ -535,13 +555,11 @@ export default function App() {
         return () => clearTimeout(handler);
     }, [checklistData, isAuthReady, isSyncing]);
 
-    // PERBAIKAN: Fungsi untuk menangani login
     const handleLoginSuccess = () => {
         localStorage.setItem('isLoggedIn', 'true');
         setIsLoggedIn(true);
     };
 
-    // PERBAIKAN: Fungsi untuk menangani logout
     const handleLogout = () => {
         localStorage.removeItem('isLoggedIn');
         setIsLoggedIn(false);
@@ -569,7 +587,7 @@ export default function App() {
                                 <History size={18} />
                                 <span className="hidden sm:inline">Riwayat</span>
                             </button>
-                            <button onClick={handleLogout} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200`}>
+                            <button onClick={handleLogout} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200'}`}>
                                 <LogOut size={18} />
                                 <span className="hidden sm:inline">Logout</span>
                             </button>

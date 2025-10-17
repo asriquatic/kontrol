@@ -1,3 +1,4 @@
+// Baris ini untuk memicu deploy ulang di Netlify
 import React, { useState, useEffect, useCallback } from 'react';
 import { Fish, Sparkles, Wrench, Calendar, TrendingUp, MessageSquare, User, Wifi, CheckCircle, Home, LogOut, KeyRound, History, LayoutDashboard, ChevronDown, X, FileSpreadsheet } from 'lucide-react';
 import { initializeApp } from "firebase/app";
@@ -18,7 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-setLogLevel('error'); // Mengurangi log di console
+setLogLevel('error');
 
 // --- Helper Components ---
 const Icon = ({ name, size = 20 }) => {
@@ -59,7 +60,7 @@ const BLOCKS = {
 const ADMIN_EMAIL = "admin@kontrol.com";
 const ADMIN_PASSWORD = "securepassword123";
 
-// --- Sub-Components (Tidak ada perubahan signifikan di sini) ---
+// --- Sub-Components ---
 const LoginScreen = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -470,21 +471,23 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
 
 // --- Komponen Utama Aplikasi (APP) ---
 export default function App() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    // PERBAIKAN: Inisialisasi state isLoggedIn dari localStorage
+    const [isLoggedIn, setIsLoggedIn] = useState(() => {
+        return localStorage.getItem('isLoggedIn') === 'true';
+    });
+
     const [currentPage, setCurrentPage] = useState('checklist');
     const [checklistData, setChecklistData] = useState({});
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [isSyncing, setIsSyncing] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     
-    // PERBAIKAN: ID Dokumen statis untuk data bersama
     const SHARED_DATA_DOC_ID = "asriquatic-shared-data";
 
-    // Efek untuk otentikasi
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, user => {
             if (user) {
-                setIsAuthReady(true); // Pengguna (anonim) sudah siap
+                setIsAuthReady(true);
             } else {
                 signInAnonymously(auth).catch(error => console.error("Gagal masuk anonim", error));
             }
@@ -492,9 +495,8 @@ export default function App() {
         return () => unsubscribeAuth();
     }, []);
 
-    // Efek untuk mengambil data dari Firestore
     useEffect(() => {
-        if (!isAuthReady) return; // Jangan ambil data sebelum otentikasi siap
+        if (!isAuthReady) return;
 
         setIsSyncing(true);
         const docRef = doc(db, "kontrol-data", SHARED_DATA_DOC_ID);
@@ -514,7 +516,6 @@ export default function App() {
         return () => unsubscribeSnapshot();
     }, [isAuthReady]);
 
-    // Efek untuk menyimpan data ke Firebase
     useEffect(() => {
         if (!isAuthReady || isSyncing || Object.keys(checklistData).length === 0) {
             return;
@@ -534,8 +535,20 @@ export default function App() {
         return () => clearTimeout(handler);
     }, [checklistData, isAuthReady, isSyncing]);
 
+    // PERBAIKAN: Fungsi untuk menangani login
+    const handleLoginSuccess = () => {
+        localStorage.setItem('isLoggedIn', 'true');
+        setIsLoggedIn(true);
+    };
+
+    // PERBAIKAN: Fungsi untuk menangani logout
+    const handleLogout = () => {
+        localStorage.removeItem('isLoggedIn');
+        setIsLoggedIn(false);
+    };
+
     if (!isLoggedIn) {
-        return <LoginScreen onLoginSuccess={() => setIsLoggedIn(true)} />;
+        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
     }
 
     return (
@@ -556,7 +569,7 @@ export default function App() {
                                 <History size={18} />
                                 <span className="hidden sm:inline">Riwayat</span>
                             </button>
-                            <button onClick={() => setIsLoggedIn(false)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200`}>
+                            <button onClick={handleLogout} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200`}>
                                 <LogOut size={18} />
                                 <span className="hidden sm:inline">Logout</span>
                             </button>

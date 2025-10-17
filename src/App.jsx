@@ -4,7 +4,21 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, onSnapshot, setDoc, setLogLevel } from "firebase/firestore";
 
-// PERBAIKAN: Import CSS dihapus dari sini. Pastikan import ada di src/main.jsx saja.
+// --- Firebase Config (dari kode Anda) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyDHQ-_WPqutBgUTSwpu-JyB6zQ1bT38V0M", 
+    authDomain: "asriquatic-apps.firebaseapp.com",
+    projectId: "asriquatic-apps",
+    storageBucket: "asriquatic-apps.firebasestorage.app",
+    messagingSenderId: "644786284064",
+    appId: "1:644786284064:web:5f3246fb9db06dd8357e45"
+};
+
+// --- Inisialisasi Firebase ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+setLogLevel('error'); // Mengurangi log di console
 
 // --- Helper Components ---
 const Icon = ({ name, size = 20 }) => {
@@ -25,7 +39,7 @@ const createInitialBlockState = () => ({
         { id: 'kondisi-ikan', title: 'KONDISI IKAN', icon: 'Fish', sections: [ { type: 'radio', id: 'kesehatan-ikan', title: 'A. Kesehatan Ikan', selectedValue: null, items: [{ id: 'sehat', text: 'Sehat' }, { id: 'tidak-sehat', text: 'Tidak Sehat' }] }, { type: 'radio', id: 'nafsu-makan', title: 'B. Nafsu Makan', selectedValue: null, items: [{ id: 'bagus', text: 'Bagus' }, { id: 'kurang-bagus', text: 'Kurang Bagus' }] }, { type: 'radio', id: 'gerakan-ikan', title: 'C. Gerakan Ikan', selectedValue: null, items: [{ id: 'gesit', text: 'Gesit' }, { id: 'lambat', text: 'Lambat' }, { id: 'mojok', text: 'Mojok' }] }, { type: 'radio', id: 'kondisi-ikan-state', title: 'D. Kondisi Ikan', selectedValue: null, items: [{ id: 'bertelur', text: 'Bertelur' }, { id: 'menetas', text: 'Menetas' }, { id: 'gendong', text: 'Gendong' }, { id: 'kosong', text: 'Kosong' }] }, { type: 'radio', id: 'pakan', title: 'E. Pakan', selectedValue: null, items: [{ id: 'normal', text: 'Normal' }, { id: 'puasa', text: 'Puasa' }] }, ] },
         { id: 'kebersihan', title: 'KEBERSIHAN', icon: 'Sparkles', sections: [
             { type: 'triState', id: 'aquarium-indukan', title: 'A. Aquarium Indukan', items: [
-                { id: 'kaca-depan', text: 'Kaca Depan', status: null }, // null, 'checked', 'crossed'
+                { id: 'kaca-depan', text: 'Kaca Depan', status: null },
                 { id: 'kaca-belakang', text: 'Kaca Belakang', status: null },
                 { id: 'kaca-kiri', text: 'Kaca Samping Kiri', status: null },
                 { id: 'kaca-kanan', text: 'Kaca Samping Kanan', status: null }
@@ -45,16 +59,7 @@ const BLOCKS = {
 const ADMIN_EMAIL = "admin@kontrol.com";
 const ADMIN_PASSWORD = "securepassword123";
 
-// --- Firebase Config ---
-const firebaseConfig = {
-    apiKey: "AIzaSyDHQ-_WPqutBgUTSwpu-JyB6zQ1bT38V0M", 
-    authDomain: "asriquatic-apps.firebaseapp.com",
-    projectId: "asriquatic-apps",
-    storageBucket: "asriquatic-apps.firebasestorage.app",
-    messagingSenderId: "644786284064",
-    appId: "1:644786284064:web:5f3246fb9db06dd8357e45"
-};
-
+// --- Sub-Components (Tidak ada perubahan signifikan di sini) ---
 const LoginScreen = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -66,7 +71,6 @@ const LoginScreen = ({ onLoginSuccess }) => {
         setLoading(true); 
         setError('');
         
-        // Simulasikan login admin lokal
         if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) { 
             setTimeout(() => onLoginSuccess(), 500);
         } else { 
@@ -116,17 +120,13 @@ const HistoryPage = ({ checklistData }) => {
     
     const handleExport = () => {
         setIsExporting(true);
-        
-        // Data Transformation for Excel
         const exportData = aquariumKeys.map(key => {
             const aquariumData = blockData[key];
             const row = { 'Blok': activeBlock, 'Aquarium': key, };
-            
             aquariumData.categories.forEach(category => {
                 category.sections.forEach(section => {
                     if (section.type === 'radio') { 
                         const selectedItem = section.items.find(item => item.id === section.selectedValue); 
-                        // MENGAMBIL NILAI YANG DIPILIH
                         row[section.title] = selectedItem ? selectedItem.text : '';
                     } else if (section.type === 'triState') {
                         section.items.forEach(item => {
@@ -142,8 +142,12 @@ const HistoryPage = ({ checklistData }) => {
             return row;
         });
 
-        // Load SheetJS dynamically
         const loadScript = (src, callback) => {
+            const existingScript = document.querySelector(`script[src="${src}"]`);
+            if (existingScript) {
+                callback();
+                return;
+            }
             const script = document.createElement('script'); 
             script.src = src; 
             script.onload = callback; 
@@ -151,15 +155,11 @@ const HistoryPage = ({ checklistData }) => {
         };
         
         loadScript("https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js", () => {
-            // @ts-ignore
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            // @ts-ignore
-            const workbook = XLSX.utils.book_new();
-            // @ts-ignore
-            XLSX.utils.book_append_sheet(workbook, worksheet, activeBlock);
+            const worksheet = window.XLSX.utils.json_to_sheet(exportData);
+            const workbook = window.XLSX.utils.book_new();
+            window.XLSX.utils.book_append_sheet(workbook, worksheet, activeBlock);
             const today = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
-            // @ts-ignore
-            XLSX.writeFile(workbook, `Laporan Kontrol ${activeBlock} - ${today}.xlsx`);
+            window.XLSX.writeFile(workbook, `Laporan Kontrol ${activeBlock} - ${today}.xlsx`);
             setIsExporting(false);
         });
     };
@@ -284,62 +284,87 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
         const num = parseInt(numValue, 10); 
         setSelectedAquarium(num);
         
-        // Inisialisasi state baru jika belum ada
         if (!checklistData[activeBlock] || !checklistData[activeBlock][num]) {
-            setChecklistData(prevData => { 
-                const newData = JSON.parse(JSON.stringify(prevData)); 
-                if (!newData[activeBlock]) { 
-                    newData[activeBlock] = {}; 
-                } 
-                newData[activeBlock][num] = createInitialBlockState(); 
-                return newData; 
+            setChecklistData(prevData => {
+                const newBlockData = prevData[activeBlock] ? { ...prevData[activeBlock] } : {};
+                newBlockData[num] = createInitialBlockState();
+                return {
+                    ...prevData,
+                    [activeBlock]: newBlockData,
+                };
             });
         }
     };
     
     const handleOptionChange = (categoryId, sectionId, value) => {
-        setChecklistData(prevData => { 
-            const newData = JSON.parse(JSON.stringify(prevData)); 
-            const section = newData[activeBlock][selectedAquarium].categories.find(c => c.id === categoryId).sections.find(s => s.id === sectionId); 
-            section.selectedValue = value; 
-            return newData; 
-        });
+        setChecklistData(prevData => ({
+            ...prevData,
+            [activeBlock]: {
+                ...prevData[activeBlock],
+                [selectedAquarium]: {
+                    ...prevData[activeBlock][selectedAquarium],
+                    categories: prevData[activeBlock][selectedAquarium].categories.map(cat => 
+                        cat.id === categoryId ? {
+                            ...cat,
+                            sections: cat.sections.map(sec => 
+                                sec.id === sectionId ? { ...sec, selectedValue: value } : sec
+                            )
+                        } : cat
+                    )
+                }
+            }
+        }));
     };
     
     const handleTriStateChange = (categoryId, sectionId, itemId, newStatus) => {
-        setChecklistData(prevData => { 
-            const newData = JSON.parse(JSON.stringify(prevData)); 
-            const section = newData[activeBlock][selectedAquarium].categories.find(c => c.id === categoryId).sections.find(s => s.id === sectionId); 
-            const item = section.items.find(i => i.id === itemId); 
-            item.status = item.status === newStatus ? null : newStatus; 
-            return newData; 
-        });
+        setChecklistData(prevData => ({
+            ...prevData,
+            [activeBlock]: {
+                ...prevData[activeBlock],
+                [selectedAquarium]: {
+                    ...prevData[activeBlock][selectedAquarium],
+                    categories: prevData[activeBlock][selectedAquarium].categories.map(cat => 
+                        cat.id === categoryId ? {
+                            ...cat,
+                            sections: cat.sections.map(sec => 
+                                sec.id === sectionId ? {
+                                    ...sec,
+                                    items: sec.items.map(item => 
+                                        item.id === itemId ? { ...item, status: item.status === newStatus ? null : newStatus } : item
+                                    )
+                                } : sec
+                            )
+                        } : cat
+                    )
+                }
+            }
+        }));
     };
     
     const handleReviewChange = (categoryId, event) => {
         const { value } = event.target;
-        setChecklistData(prevData => { 
-            const newData = JSON.parse(JSON.stringify(prevData)); 
-            newData[activeBlock][selectedAquarium].reviews[categoryId] = value; 
-            return newData; 
-        });
-    };
-    
-    // PERBAIKAN: Mengubah handleAutoFill menjadi handleSaveCategory
-    const handleSaveCategory = () => {
-        // Mencegah error alert() di lingkungan terbatas
-        console.log('Data Kategori disimpan. Perubahan akan tersinkronisasi dalam 1.5 detik.');
+        setChecklistData(prevData => ({
+            ...prevData,
+            [activeBlock]: {
+                ...prevData[activeBlock],
+                [selectedAquarium]: {
+                    ...prevData[activeBlock][selectedAquarium],
+                    reviews: {
+                        ...prevData[activeBlock][selectedAquarium].reviews,
+                        [categoryId]: value
+                    }
+                }
+            }
+        }));
     };
     
     const calculateCompletion = (category) => {
         if (!category) return 0;
         const totalSections = category.sections.length;
-        
         const completedSections = category.sections.filter(s => {
             if (s.type === 'triState') return s.items.some(i => i.status !== null);
             return s.selectedValue !== null;
         }).length;
-        
         return totalSections > 0 ? ((completedSections / totalSections) * 100).toFixed(0) : 0;
     };
     
@@ -352,9 +377,7 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
                     <h2 className="text-lg font-bold mb-2">1. Pilih Blok</h2>
                     <select value={activeBlock} onChange={(e) => handleBlockChange(e.target.value)} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
                         {Object.keys(BLOCKS).map(blockName => (
-                            <option key={blockName} value={blockName}>
-                                {blockName} ({BLOCKS[blockName].total})
-                            </option>
+                            <option key={blockName} value={blockName}>{blockName} ({BLOCKS[blockName].total})</option>
                         ))}
                     </select>
                 </div> 
@@ -363,9 +386,7 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
                     <select value={selectedAquarium || ''} onChange={handleAquariumSelectionChange} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
                         <option value="">-- Pilih Nomor --</option>
                         {Array.from({ length: BLOCKS[activeBlock].total }, (_, i) => i + 1).map(num => (
-                            <option key={num} value={num}>
-                                Aquarium {num}
-                            </option>
+                            <option key={num} value={num}>Aquarium {num}</option>
                         ))}
                     </select>
                 </div> 
@@ -376,11 +397,9 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
                     <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-xl shadow-md font-bold text-center text-lg">
                         Anda sedang mengontrol: {activeBlock} - Aquarium #{selectedAquarium}
                     </div>
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {activeAquariumData.categories.map((category) => (
                             <div key={category.id} className="bg-white p-6 rounded-3xl shadow-lg border flex flex-col">
-                                
                                 <div className="flex items-center justify-between mb-4 pb-4 border-b">
                                     <div className="flex items-center">
                                         <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full text-white mr-3 shadow-md">
@@ -393,12 +412,10 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
                                         <span>{calculateCompletion(category)}%</span>
                                     </div>
                                 </div>
-                                
                                 <div className="flex-grow">
                                     {category.sections.map((section) => (
                                         <div key={section.id} className="mb-4">
                                             <h3 className="text-md font-semibold text-gray-700 mb-2">{section.title}</h3> 
-                                            
                                             {section.type === 'triState' ? ( 
                                                 <div className="space-y-2"> 
                                                     {section.items.map((item) => ( 
@@ -430,11 +447,7 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
                                         </div>
                                     ))}
                                 </div>
-                                
                                 <div className="mt-auto pt-4 border-t">
-                                    <button onClick={handleSaveCategory} className="w-full flex items-center justify-center gap-2 mb-4 p-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition-all shadow-sm">
-                                        <CheckCircle size={18} />Simpan Kategori
-                                    </button>
                                     <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center">
                                         <MessageSquare size={18} className="mr-2 text-blue-500" />Ulasan & Catatan
                                     </h3>
@@ -455,4 +468,125 @@ const ChecklistApp = ({ checklistData, setChecklistData }) => {
     );
 };
 
-export default App;
+// --- Komponen Utama Aplikasi (APP) ---
+export default function App() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentPage, setCurrentPage] = useState('checklist');
+    const [checklistData, setChecklistData] = useState({});
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    
+    // PERBAIKAN: ID Dokumen statis untuk data bersama
+    const SHARED_DATA_DOC_ID = "asriquatic-shared-data";
+
+    // Efek untuk otentikasi
+    useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(auth, user => {
+            if (user) {
+                setIsAuthReady(true); // Pengguna (anonim) sudah siap
+            } else {
+                signInAnonymously(auth).catch(error => console.error("Gagal masuk anonim", error));
+            }
+        });
+        return () => unsubscribeAuth();
+    }, []);
+
+    // Efek untuk mengambil data dari Firestore
+    useEffect(() => {
+        if (!isAuthReady) return; // Jangan ambil data sebelum otentikasi siap
+
+        setIsSyncing(true);
+        const docRef = doc(db, "kontrol-data", SHARED_DATA_DOC_ID);
+        const unsubscribeSnapshot = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setChecklistData(docSnap.data());
+            } else {
+                console.log("Tidak ada data bersama, dokumen baru akan dibuat saat ada penyimpanan.");
+                setChecklistData({});
+            }
+            setIsSyncing(false);
+        }, (error) => {
+            console.error("Gagal mengambil data:", error);
+            setIsSyncing(false);
+        });
+
+        return () => unsubscribeSnapshot();
+    }, [isAuthReady]);
+
+    // Efek untuk menyimpan data ke Firebase
+    useEffect(() => {
+        if (!isAuthReady || isSyncing || Object.keys(checklistData).length === 0) {
+            return;
+        }
+
+        setIsSaving(true);
+        const handler = setTimeout(() => {
+            const docRef = doc(db, "kontrol-data", SHARED_DATA_DOC_ID);
+            setDoc(docRef, checklistData, { merge: true })
+                .then(() => setIsSaving(false))
+                .catch(error => {
+                    console.error("Gagal menyimpan ke Firebase:", error);
+                    setIsSaving(false);
+                });
+        }, 1500);
+
+        return () => clearTimeout(handler);
+    }, [checklistData, isAuthReady, isSyncing]);
+
+    if (!isLoggedIn) {
+        return <LoginScreen onLoginSuccess={() => setIsLoggedIn(true)} />;
+    }
+
+    return (
+        <div className="bg-gray-100 min-h-screen font-sans text-gray-800">
+            <nav className="bg-white shadow-md">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        <div className="flex items-center">
+                            <Fish className="text-blue-600" size={32} />
+                            <h1 className="ml-3 text-2xl font-bold text-gray-800">Kartu Kontrol</h1>
+                        </div>
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                            <button onClick={() => setCurrentPage('checklist')} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${currentPage === 'checklist' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}>
+                                <LayoutDashboard size={18} />
+                                <span className="hidden sm:inline">Kontrol</span>
+                            </button>
+                            <button onClick={() => setCurrentPage('history')} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${currentPage === 'history' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}>
+                                <History size={18} />
+                                <span className="hidden sm:inline">Riwayat</span>
+                            </button>
+                            <button onClick={() => setIsLoggedIn(false)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200`}>
+                                <LogOut size={18} />
+                                <span className="hidden sm:inline">Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <main className="p-4 md:p-8">
+                <div className="fixed bottom-4 right-4 z-50">
+                    {isSyncing ? (
+                         <div className="flex items-center gap-2 bg-yellow-500 text-white font-bold px-4 py-2 rounded-full shadow-lg">
+                            <Wifi size={18} /> <span>Sinkronisasi...</span>
+                        </div>
+                    ) : isSaving ? (
+                        <div className="flex items-center gap-2 bg-blue-500 text-white font-bold px-4 py-2 rounded-full shadow-lg">
+                            <Wifi size={18} /> <span>Menyimpan...</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 bg-green-500 text-white font-bold px-4 py-2 rounded-full shadow-lg">
+                            <CheckCircle size={18} /> <span>Tersinkronisasi</span>
+                        </div>
+                    )}
+                </div>
+
+                {currentPage === 'checklist' ? 
+                    <ChecklistApp checklistData={checklistData} setChecklistData={setChecklistData} /> : 
+                    <HistoryPage checklistData={checklistData} />
+                }
+            </main>
+        </div>
+    );
+}
+
